@@ -1,0 +1,23 @@
+{
+  "name": "highloadcup-1",
+  "version": "0.1.0",
+  "author": "Maxim Zasorin <maximzasorin@gmail.com>",
+  "private": true,
+  "scripts": {
+    "prod": "node server.js",
+    "dev": "nodemon server.js",
+    "docker-test": "npm run test",
+    "test": "mocha --timeout 10000 tests"
+  },
+  "dependencies": {
+    "body-parser": "^1.17.2",
+    "express": "^4.13.3",
+    "mongoose": "^4.11.6"
+  },
+  "devDependencies": {
+    "nodemon": "^1.11.0",
+    "chai": "^3.5.0",
+    "chai-http": "^2.0.1",
+    "mocha": "^2.4.5"
+  }
+}

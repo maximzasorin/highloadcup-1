@@ -1,0 +1,4 @@
+.DS_Store
+supervisord.log
+supervisord.pid
+node_modules

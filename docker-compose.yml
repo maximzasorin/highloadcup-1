@@ -1,0 +1,32 @@
+version: "3"
+services:
+  prod:
+    build: .
+    image: maximzasorin/highloadcup-1
+    ports:
+      - "3000:80"
+    volumes:
+      - ./data:/tmp/data
+  dev:
+    build: .
+    image: maximzasorin/highloadcup-1
+    ports:
+      - "3000:80"
+    volumes:
+     - .:/usr/app
+     - ./data:/tmp/data
+    tty: true
+    entrypoint:
+      - /usr/bin/supervisord
+      - -c
+      - supervisord.dev.conf
+  test:
+    build: .
+    image: maximzasorin/highloadcup-1
+    volumes:
+     - .:/usr/app
+    tty: true
+    entrypoint:
+      - /usr/bin/supervisord
+      - -c
+      - supervisord.test.conf
