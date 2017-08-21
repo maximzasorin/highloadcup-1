@@ -1,46 +1,57 @@
-'use strict';
+const http = require('http');
+const express = require('express');
+const mongoose = require('mongoose');
+const bodyParser = require('body-parser');
+const fs = require('fs');
+const cluster = require('cluster');
 
 // Constants
 const PORT = 80;
 const HOST = '0.0.0.0';
 
-// Express
-const express = require('express');
-const app = express();
-
-// Mongoose
-const mongoose = require('mongoose');
-mongoose.Promise = global.Promise;
-mongoose.connect('mongodb://localhost/travels', { useMongoClient: true });
-
-// Body parser
-const bodyParser = require('body-parser');
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
-
-// Another
-const fs = require('fs');
-
+// Parse options
 let optionsFile = fs.readFileSync('/tmp/data/options.txt', 'utf-8');
-
 let options = optionsFile.split("\n");
 
 global.NOW = options[0] * 1000;
 global.MODE = options[1];
 
-// Models
-const User = require('./app/models/UsersModel');
-const Location = require('./app/models/LocationsModel');
-const Visit = require('./app/models/VisitsModel');
+if (cluster.isMaster) {
+    let cpuCount = require('os').cpus().length;
 
-// Routes
-require('./app/routes/UsersRoutes')(app);
-require('./app/routes/LocationsRoutes')(app);
-require('./app/routes/VisitsRoutes')(app);
+    for (let i = 0; i < cpuCount; i += 1) {
+        cluster.fork();
+    }
+} else {
+	// Expose server
 
-// Expose
-app.listen(PORT, HOST);
+	// Express
+	const app = express();
 
-console.log(`Running on http://${HOST}:${PORT}`);
+	// Mongoose
+	mongoose.Promise = global.Promise;
+	mongoose.connect('mongodb://localhost/travels', { useMongoClient: true });
 
-module.exports = app;
+	// Body parser
+	app.use(bodyParser.json());
+
+	// Models
+	const User = require('./app/models/UsersModel');
+	const Location = require('./app/models/LocationsModel');
+	const Visit = require('./app/models/VisitsModel');
+
+	// Routes
+	app.route('/')
+		.get((req, res) => {
+			res.send(404).end();
+		});
+
+	require('./app/routes/UsersRoutes')(app);
+	require('./app/routes/LocationsRoutes')(app);
+	require('./app/routes/VisitsRoutes')(app);
+
+	// Listen
+	app.listen(PORT, HOST);
+
+	console.log(`Running on http://${HOST}:${PORT}`);
+}

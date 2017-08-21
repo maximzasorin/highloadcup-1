@@ -2,9 +2,9 @@ var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
 
 var VisitsSchema = new Schema({
-	  	id: { type: Number, required: true },
-	  	location: { type: Number, required: true },
-	  	user: { type: Number, required: true },
+	  	id: { type: Number, required: true, index: true, unique: true },
+	  	location: { type: Number, required: true, index: true },
+	  	user: { type: Number, required: true, index: true },
 	  	visited_at: { type: Number, required: true },
 	  	mark: { type: Number, required: true },
 	}, {
@@ -21,5 +21,8 @@ var VisitsSchema = new Schema({
 	       	}
 	   }
 	});
+
+// Index for sorting
+VisitsSchema.index({ id: 1, visited_at: 1 });
 
 module.exports = mongoose.model('Visits', VisitsSchema);

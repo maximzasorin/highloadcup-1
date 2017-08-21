@@ -1,16 +1,5 @@
-var mongoose = require('mongoose'),
+const mongoose = require('mongoose'),
     User = mongoose.model('Users');
-
-// // TODO: remove for prod
-// exports.index = function (req, res) {
-//     User.find({}, function (err, users) {
-//         if (err) {
-//             return res.status(400).end();
-//         }
-
-//         res.json(global.NOW);
-//     });
-// };
 
 exports.show = function (req, res) {
     User.findOne({ id: req.params.userId }, function(err, user) {

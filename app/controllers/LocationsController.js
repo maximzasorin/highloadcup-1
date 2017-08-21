@@ -1,18 +1,7 @@
-var mongoose = require('mongoose'),
+const mongoose = require('mongoose'),
     Location = mongoose.model('Locations'),
     Visit = mongoose.model('Visits'),
     validateQuery = require('../validateQuery');
-
-// // TODO: remove for prod
-// exports.index = function (req, res) {
-//     Location.find({}, function (err, locations) {
-//         if (err) {
-//             return res.status(400).end();
-//         }
-
-//         res.json(locations);
-//     });
-// };
 
 exports.show = function (req, res) {
     Location.findOne({ id: req.params.locationId }, function(err, location) {
@@ -76,11 +65,9 @@ exports.avg = function (req, res) {
         }
 
         // User conditions
-        let userFilter = [];
-
         if (req.query.gender) {
-            userFilter.push({
-                gender: req.query.gender
+            filter.push({
+                'user.gender': req.query.gender
             });
         }
 
@@ -91,44 +78,26 @@ exports.avg = function (req, res) {
             date.setSeconds(0);
             date.setFullYear(date.getFullYear() - age);
 
-            // console.log('-------------------------');
-            // console.log(global.NOW);
-            // console.log(age);
-            console.log(date);
-
             return Math.floor(date.getTime() / 1000);
         }
 
         if (req.query.fromAge) {
-            userFilter.push({
-                birth_date: {
+            filter.push({
+                'user.birth_date': {
                     $lt: getTime(parseInt(req.query.fromAge))
                 }
             });
         }
 
         if (req.query.toAge) {
-            userFilter.push({
-                birth_date: {
+            filter.push({
+                'user.birth_date': {
                     $gt: getTime(parseInt(req.query.toAge))
                 }
             });
         }
 
-        if (userFilter.length) {
-            filter.push({
-                user_info: {
-                    $elemMatch: {
-                        $and: userFilter
-                    }
-                }
-            });
-        }
-
-        // console.log('-----------------------');
-        // console.log(userFilter);
-        // console.log(filter);
-
+        // Make query
         Visit
             .aggregate([
                 {
@@ -136,8 +105,11 @@ exports.avg = function (req, res) {
                         from: 'users',
                         localField: 'user',
                         foreignField: 'id',
-                        as: 'user_info'
+                        as: 'user'
                     }
+                },
+                {
+                    $unwind: { path: '$user' }
                 },
                 {
                     $match: {
@@ -164,7 +136,7 @@ exports.avg = function (req, res) {
 
                 res.json({
                     avg
-                })
+                });
             });
     });
 };

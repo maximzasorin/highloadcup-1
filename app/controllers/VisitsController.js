@@ -1,18 +1,7 @@
-var mongoose = require('mongoose'),
+const mongoose = require('mongoose'),
     Visit = mongoose.model('Visits'),
     User = mongoose.model('Users'),
     validateQuery = require('../validateQuery');
-
-// // TODO: remove for prod
-// exports.index = function (req, res) {
-//     Visit.find({}, function (err, visits) {
-//         if (err) {
-//             return res.status(400).end();
-//         }
-
-//         res.json(visits);
-//     });
-// };
 
 exports.indexByUser = function (req, res) {
     User.findOne({ id: req.params.userId }, function (err, user) {

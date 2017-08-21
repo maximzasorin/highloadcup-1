@@ -13,5 +13,5 @@ module.exports = function(app) {
   		.post(LocationsController.update);
 
   	app.route('/locations/:locationId/avg')
-  		.get(LocationsController.avg)
+  		.get(LocationsController.avg);
 };

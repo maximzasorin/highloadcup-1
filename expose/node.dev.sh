@@ -1,6 +1,6 @@
 #/bin/bash
 
-unzip -o /tmp/data/data.zip -d /data/initial
+unzip -o /tmp/data/data_train.zip -d /data/initial
 
 for filename in /data/initial/users_*.json; do
 	cat $filename | jq '.users' | mongoimport --db travels --collection users --jsonArray

@@ -2,9 +2,9 @@ var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
 
 var LocationsSchema = new Schema({
-	  	id: { type: Number, required: true },
+	  	id: { type: Number, required: true, index: true, unique: true },
 	  	place: { type: String, required: true },
-	  	country: { type: String, required: true },
+	  	country: { type: String, required: true, index: true },
 	  	city: { type: String, required: true },
 	  	distance: { type: Number, required: true },
 	}, {

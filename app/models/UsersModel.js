@@ -2,11 +2,11 @@ var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
 
 var UserSchema = new Schema({
-	  	id: { type: Number, required: true },
+	  	id: { type: Number, required: true, index: true, unique: true },
 	  	email: { type: String, required: true },
 	  	first_name: { type: String, required: true },
 	  	last_name: { type: String, required: true },
-	  	gender: { type: String, required: true },
+	  	gender: { type: String, required: true, index: true },
 	  	birth_date: { type: Number, required: true },
 	}, {
 		toJSON: { 
