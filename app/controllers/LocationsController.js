@@ -153,7 +153,7 @@ exports.store = function (req, res) {
     });
 };
 
-exports.update = function(req, res) {
+exports.update = function (req, res) {
     let bodyParams = [
         'place', 'country', 'city', 'distance'
     ];

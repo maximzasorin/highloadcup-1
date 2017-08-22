@@ -6,7 +6,7 @@ const mongoose = require('mongoose'),
 exports.indexByUser = function (req, res) {
     User.findOne({ id: req.params.userId }, function (err, user) {
         if (err || !user) {
-            return res.status(404).end();
+            return res.send(404).end();
         }
 
         // Validate filter params
@@ -17,7 +17,7 @@ exports.indexByUser = function (req, res) {
         };
 
         if (!validateQuery(filterRules, req)) {
-            return res.status(400).end();
+            return res.send(400).end();
         }
 
         // Assemble filter
@@ -86,7 +86,7 @@ exports.indexByUser = function (req, res) {
         ])
         .exec(function (err, results) {
             if (err) {
-                return res.status(400).end();
+                return res.send(400).end();
             }
 
             let visits = results.map(function (result) {
@@ -105,7 +105,7 @@ exports.indexByUser = function (req, res) {
 exports.show = function (req, res) {
     Visit.findOne({ id: req.params.visitId }, function(err, visit) {
         if (err || !visit) {
-            return res.status(404).end();
+            return res.send(404).end();
         }
 
         res.json(visit);
@@ -117,7 +117,7 @@ exports.store = function (req, res) {
 
     visit.save(function (err, visit) {
         if (err) {
-            return res.status(400).end();
+            return res.send(400).end();
         }
 
         res.json({});
@@ -137,18 +137,18 @@ exports.update = function(req, res) {
     }
 
     if (!paramExists) {
-        return res.status(400).end();
+        return res.send(400).end();
     }
 
     Visit.findOneAndUpdate({ id: req.params.visitId },
         req.body, { new: true, runValidators: true },
         function (err, visit) {
             if (err) {
-                return res.status(400).end();
+                return res.send(400).end();
             }
 
             if (!visit) {
-                return res.status(404).end();
+                return res.send(404).end();
             }
 
             res.json({});

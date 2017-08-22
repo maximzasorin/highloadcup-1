@@ -1,9 +1,12 @@
-const http = require('http');
-const express = require('express');
-const mongoose = require('mongoose');
-const bodyParser = require('body-parser');
-const fs = require('fs');
-const cluster = require('cluster');
+const http = require('http'),
+	express = require('express'),
+	mongoose = require('mongoose'),
+	bodyParser = require('body-parser'),
+	fs = require('fs'),
+	cluster = require('cluster'),
+	apicache = require('apicache');
+
+// apicache.options({ debug: true });
 
 // Constants
 const PORT = 80;
@@ -35,20 +38,28 @@ if (cluster.isMaster) {
 	// Body parser
 	app.use(bodyParser.json());
 
+	// Cache
+	app.use(apicache.middleware());
+
+	app.use(function (req, res, next) {
+		apicache.clear();
+		next();
+	});
+
 	// Models
 	const User = require('./app/models/UsersModel');
 	const Location = require('./app/models/LocationsModel');
 	const Visit = require('./app/models/VisitsModel');
 
 	// Routes
-	app.route('/')
-		.get((req, res) => {
-			res.send(404).end();
-		});
-
 	require('./app/routes/UsersRoutes')(app);
 	require('./app/routes/LocationsRoutes')(app);
 	require('./app/routes/VisitsRoutes')(app);
+
+	// Default route
+	app.use(function (req, res, next) {
+		res.status(404).send();
+	});
 
 	// Listen
 	app.listen(PORT, HOST);
