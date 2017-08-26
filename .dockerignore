@@ -1,5 +1,7 @@
+.DS_Store
 node_modules
 npm-debug.log
-tmp
+data
 logs
 supervisord.log
+supervisord.pid

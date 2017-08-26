@@ -1,4 +1,7 @@
 .DS_Store
+node_modules
+npm-debug.log
+data
+logs
 supervisord.log
 supervisord.pid
-node_modules

@@ -6,7 +6,7 @@ services:
     ports:
       - "3000:80"
     volumes:
-      - ./data:/tmp/data
+      - ./data/full:/tmp/data
   dev:
     build: .
     image: maximzasorin/highloadcup-1
@@ -14,7 +14,7 @@ services:
       - "3000:80"
     volumes:
      - .:/usr/app
-     - ./data:/tmp/data
+     - ./data/train:/tmp/data
     tty: true
     entrypoint:
       - /usr/bin/supervisord
