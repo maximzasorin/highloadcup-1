@@ -1,156 +1,170 @@
-const mongoose = require('mongoose'),
-    Visit = mongoose.model('Visits'),
-    User = mongoose.model('Users'),
-    validateQuery = require('../validateQuery');
+const mongo = require('../mongo'),
+    Schema = require('../schema'),
+    util = require('../util');
 
-exports.indexByUser = function (req, res) {
-    User.findOne({ id: req.params.userId }, function (err, user) {
-        if (err || !user) {
-            return res.send(404).end();
-        }
-
-        // Validate filter params
-        let filterRules = {
-            fromDate: Number,
-            toDate: Number,
-            toDistance: Number,
-        };
-
-        if (!validateQuery(filterRules, req)) {
-            return res.send(400).end();
-        }
-
-        // Assemble filter
-        let filter = [];
-
-        // User
-        filter.push({ user: user.id });
-
-        // From date
-        if (req.query.fromDate) {
-            filter.push({
-                visited_at: {
-                    $gt: parseInt(req.query.fromDate)
-                }
-            });
-        }
-
-        // To date
-        if (req.query.toDate) {
-            filter.push({
-                visited_at: {
-                    $lt: parseInt(req.query.toDate)
-                }
-            });
-        }
-
-        // Country
-        if (req.query.country) {
-            filter.push({
-                'location.country': req.query.country
-            });
-        }
-
-        // toDistance
-        if (req.query.toDistance) {
-            filter.push({
-                'location.distance': {
-                    $lt: parseInt(req.query.toDistance)
-                }
-            });
-        }
-
-        // Make query
-        Visit.aggregate([
-            {
-                $lookup: {
-                    from: 'locations',
-                    localField: 'location',
-                    foreignField: 'id',
-                    as: 'location'
-                }
-            },
-            {
-                $unwind: { path: '$location' }
-            },
-            {
-                $match: {
-                    $and: filter
-                }
-            },
-            {
-                $sort: {
-                    visited_at: 1
-                }
-            }
-        ])
-        .exec(function (err, results) {
-            if (err) {
-                return res.send(400).end();
-            }
-
-            let visits = results.map(function (result) {
-                return {
-                    mark: result.mark,
-                    visited_at: result.visited_at,
-                    place: result.location.place,
-                };
-            });
-
-            res.json({ visits });
-        });
-    });
-};
+const visitSchema = new Schema({
+    id: Schema.Number,
+    location: Schema.Number,
+    user: Schema.Number,
+    visited_at: Schema.Number,
+    mark: Schema.Number,
+});
 
 exports.show = function (req, res) {
-    Visit.findOne({ id: req.params.visitId }, function(err, visit) {
-        if (err || !visit) {
-            return res.send(404).end();
-        }
+    mongo(function (err, db) {
+        db.collection('visits')
+            .findOne({ id: parseInt(req.params.id) }, function(err, visit) {
+                if (!visit) {
+                    return res.status(404).end();
+                }
 
-        res.json(visit);
+                util.send(res, '{' +
+                    '"id":' + visit.id + ',' +
+                    '"location":' + visit.location + ',' +
+                    '"user":' + visit.user + ',' +
+                    '"visited_at":' + visit.visited_at + ',' +
+                    '"mark":' + visit.mark +
+                '}');
+            });
     });
 };
 
 exports.store = function (req, res) {
-    var visit = new Visit(req.body);
+    let visit = visitSchema.parse(req.body);
 
-    visit.save(function (err, visit) {
-        if (err) {
-            return res.send(400).end();
-        }
+    if (visit) {
+        mongo(function (err, db) {
+            db.collection('visits')
+                .insert(visit, function () {})
+        });
 
-        res.json({});
+        util.send(res, '{}');
+    } else {
+        res.status(400).end();
+    }
+};
+
+exports.update = function (req, res) {
+    let visit = visitSchema.parse(req.body, { required: false });
+
+    if (!visit || !Object.keys(visit).length) {
+        return res.status(400).end();
+    }
+
+    mongo(function (err, db) {
+        db.collection('visits')
+            .findOneAndUpdate(
+                { id: parseInt(req.params.id) },
+                { $set: visit },
+                { new: true },
+                function (err, result) {
+                    if (!result.value) {
+                        return res.status(404).end();
+                    }
+
+                    util.send(res, '{}');
+                }
+            );
     });
 };
 
-exports.update = function(req, res) {
-    let bodyParams = [
-        'location', 'user', 'visited_at', 'mark'
-    ];
+const filterSchema = new Schema({
+    fromDate: Schema.Number,
+    toDate: Schema.Number,
+    country: Schema.String,
+    toDistance: Schema.Number,
+});
 
-    let paramExists = false;
-    for (let param of bodyParams) {
-        if (req.body[param]) {
-            paramExists = true;
-        }
-    }
+exports.indexByUser = function (req, res) {
+    mongo(function (err, db) {
+        db.collection('users')
+            .findOne({ id: parseInt(req.params.id) }, function(err, user) {
+                if (!user) {
+                    return res.status(404).end();
+                }
 
-    if (!paramExists) {
-        return res.send(400).end();
-    }
+                let filter = filterSchema.parse(req.query, { required: false });
 
-    Visit.findOneAndUpdate({ id: req.params.visitId },
-        req.body, { new: true, runValidators: true },
-        function (err, visit) {
-            if (err) {
-                return res.send(400).end();
-            }
+                if (!filter) {
+                    return res.status(400).end();
+                }
 
-            if (!visit) {
-                return res.send(404).end();
-            }
+                // Assemble query
+                let query = [];
 
-            res.json({});
-        });
+                // User
+                query.push({ user: user.id });
+
+                // From date
+                if (filter.fromDate) {
+                    query.push({
+                        visited_at: {
+                            $gt: parseInt(filter.fromDate)
+                        }
+                    });
+                }
+
+                // To date
+                if (filter.toDate) {
+                    query.push({
+                        visited_at: {
+                            $lt: parseInt(filter.toDate)
+                        }
+                    });
+                }
+
+                // Country
+                if (filter.country) {
+                    query.push({
+                        'location.country': filter.country
+                    });
+                }
+
+                // toDistance
+                if (filter.toDistance) {
+                    query.push({
+                        'location.distance': {
+                            $lt: parseInt(filter.toDistance)
+                        }
+                    });
+                }
+
+                // Make query
+                db.collection('visits')
+                    .aggregate([
+                        {
+                            $lookup: {
+                                from: 'locations',
+                                localField: 'location',
+                                foreignField: 'id',
+                                as: 'location'
+                            }
+                        },
+                        {
+                            $unwind: { path: '$location' }
+                        },
+                        {
+                            $match: {
+                                $and: query
+                            }
+                        },
+                        {
+                            $sort: {
+                                visited_at: 1
+                            }
+                        }
+                    ],
+                    function (err, results) {
+                        let visits = results.map(function (visit) {
+                            return '{' +
+                                '"mark":' + visit.mark + ',' +
+                                '"visited_at":' + visit.visited_at + ',' + 
+                                '"place":"' + visit.location.place + '"' +
+                            '}';
+                        });
+
+                        util.send(res, '{"visits":[' + visits.join(',') + ']}');
+                    });
+            });
+    });
 };

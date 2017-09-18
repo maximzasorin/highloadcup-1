@@ -1,17 +1,12 @@
 module.exports = function(app) {
   	var LocationsController = require('../controllers/LocationsController');
 
-  	// LocationsController Routes
-
-  	// // TODO: remove for prod
-  	// app.route('/locations').get(LocationsController.index);
-
   	app.route('/locations/new').post(LocationsController.store);
 
-  	app.route('/locations/:locationId')
+  	app.route('/locations/:id')
   		.get(LocationsController.show)
   		.post(LocationsController.update);
 
-  	app.route('/locations/:locationId/avg')
+  	app.route('/locations/:id/avg')
   		.get(LocationsController.avg);
 };

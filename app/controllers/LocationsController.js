@@ -1,185 +1,177 @@
-const mongoose = require('mongoose'),
-    Location = mongoose.model('Locations'),
-    Visit = mongoose.model('Visits'),
-    validateQuery = require('../validateQuery');
+const mongo = require('../mongo'),
+    Schema = require('../schema'),
+    util = require('../util');
+
+const locationSchema = new Schema({
+    id: Schema.Number,
+    place: Schema.String,
+    country: Schema.String,
+    city: Schema.String,
+    distance: Schema.Number,
+});
 
 exports.show = function (req, res) {
-    Location.findOne({ id: req.params.locationId }, function(err, location) {
-        if (err || !location) {
-            return res.status(404).end();
-        }
-
-        res.json(location);
-    });
-};
-
-exports.avg = function (req, res) {
-    let locationId = parseInt(req.params.locationId);
-
-    Location.findOne({ id: locationId }, function(err, location) {
-        if (err) {
-            return res.status(400).end();
-        }
-
-        if (!location) {
-            return res.status(404).end();
-        }
-
-        // Validate filter params
-        let filterRules = {
-            fromDate: Number,
-            toDate: Number,
-            fromAge: Number,
-            toAge: Number,
-            gender: ['m', 'f'],
-        };
-
-        if (!validateQuery(filterRules, req)) {
-            return res.status(400).end();
-        }
-
-        // Assemble filter
-        let filter = [];
-
-        // Location
-        filter.push({
-            location: locationId
-        });
-
-        // From date
-        if (req.query.fromDate) {
-            filter.push({
-                visited_at: {
-                    $gt: parseInt(req.query.fromDate)
-                }
-            });
-        }
-
-        // To date
-        if (req.query.toDate) {
-            filter.push({
-                visited_at: {
-                    $lt: parseInt(req.query.toDate)
-                }
-            });
-        }
-
-        // User conditions
-        if (req.query.gender) {
-            filter.push({
-                'user.gender': req.query.gender
-            });
-        }
-
-        function getTime(age) {
-            let date = new Date(global.NOW);
-            date.setHours(0);
-            date.setMinutes(0);
-            date.setSeconds(0);
-            date.setFullYear(date.getFullYear() - age);
-
-            return Math.floor(date.getTime() / 1000);
-        }
-
-        if (req.query.fromAge) {
-            filter.push({
-                'user.birth_date': {
-                    $lt: getTime(parseInt(req.query.fromAge))
-                }
-            });
-        }
-
-        if (req.query.toAge) {
-            filter.push({
-                'user.birth_date': {
-                    $gt: getTime(parseInt(req.query.toAge))
-                }
-            });
-        }
-
-        // Make query
-        Visit
-            .aggregate([
-                {
-                    $lookup: {
-                        from: 'users',
-                        localField: 'user',
-                        foreignField: 'id',
-                        as: 'user'
-                    }
-                },
-                {
-                    $unwind: { path: '$user' }
-                },
-                {
-                    $match: {
-                        $and: filter
-                    }
-                },
-                {
-                    $group: {
-                        _id: '$location',
-                        avg: {
-                            $avg: '$mark'
-                        }
-                    }
-                }
-            ])
-            .exec(function (err, results) {
-                if (err) {
-                    return res.status(400).end();
+    mongo(function (err, db) {
+        db.collection('locations')
+            .findOne({ id: parseInt(req.params.id) }, function(err, location) {
+                if (err || !location) {
+                    return res.status(404).end();
                 }
 
-                let avg = results.length
-                    ? Math.round(results[0].avg * 100000) / 100000
-                    : 0
-
-                res.json({
-                    avg
-                });
+                util.send(res, '{' +
+                    '"id":' + location.id + ',' +
+                    '"country":"' + location.country + '",' +
+                    '"city":"' + location.city + '",' +
+                    '"place":"' + location.place + '",' +
+                    '"distance":' + location.distance +
+                '}');
             });
     });
 };
 
 exports.store = function (req, res) {
-    var location = new Location(req.body);
+    let location = locationSchema.parse(req.body);
 
-    location.save(function (err, location) {
-        if (err) {
-            return res.status(400).end();
-        }
+    if (location) {
+        mongo(function (err, db) {
+            db.collection('locations')
+                .insert(location, function () {})
+        });
 
-        res.json({});
-    });
+        util.send(res, '{}');
+    } else {
+        res.status(400).end();
+    }
 };
 
 exports.update = function (req, res) {
-    let bodyParams = [
-        'place', 'country', 'city', 'distance'
-    ];
+    let location = locationSchema.parse(req.body, { required: false });
 
-    let paramExists = false;
-    for (let param of bodyParams) {
-        if (req.body[param]) {
-            paramExists = true;
-        }
-    }
-
-    if (!paramExists) {
+    if (!location || !Object.keys(location).length) {
         return res.status(400).end();
     }
 
-    Location.findOneAndUpdate({ id: req.params.locationId },
-        req.body, { new: true, runValidators: true },
-        function (err, location) {
-            if (err) {
-                return res.status(400).end();
-            }
+    mongo(function (err, db) {
+        db.collection('locations')
+            .findOneAndUpdate(
+                { id: parseInt(req.params.id) },
+                { $set: location },
+                { new: true },
+                function (err, result) {
+                    if (!result.value) {
+                        return res.status(404).end();
+                    }
 
-            if (!location) {
-                return res.status(404).end();
-            }
+                    util.send(res, '{}');
+                }
+            );
+    });
+};
 
-            res.json({});
-        });
+const avgSchema = new Schema({
+    fromDate: Schema.Number,
+    toDate: Schema.Number,
+    fromAge: Schema.Number,
+    toAge: Schema.Number,
+    gender: Schema.Gender,
+});
+
+exports.avg = function (req, res) {
+    mongo(function (err, db) {
+        db.collection('locations')
+            .findOne({ id: parseInt(req.params.id) }, function (err, location) {
+                if (!location) {
+                    return res.status(404).end();
+                }
+
+                let filter = avgSchema.parse(req.query, { required: false });
+
+                if (!filter) {
+                    return res.status(400).end();
+                }
+
+                // Assemble query
+                let query = [];
+
+                // Location
+                query.push({ location: location.id });
+
+                // From date
+                if (filter.fromDate) {
+                    query.push({
+                        visited_at: {
+                            $gt: parseInt(filter.fromDate)
+                        }
+                    });
+                }
+
+                // To date
+                if (filter.toDate) {
+                    query.push({
+                        visited_at: {
+                            $lt: parseInt(filter.toDate)
+                        }
+                    });
+                }
+
+                // User conditions
+                if (filter.gender) {
+                    query.push({
+                        'user.gender': filter.gender
+                    });
+                }
+
+                if (filter.fromAge) {
+                    query.push({
+                        'user.birth_date': {
+                            $lt: util.getTimeFromAge(filter.fromAge)
+                        }
+                    });
+                }
+
+                if (filter.toAge) {
+                    query.push({
+                        'user.birth_date': {
+                            $gt: util.getTimeFromAge(filter.toAge)
+                        }
+                    });
+                }
+
+                // Make query
+                db.collection('visits')
+                    .aggregate([
+                        {
+                            $lookup: {
+                                from: 'users',
+                                localField: 'user',
+                                foreignField: 'id',
+                                as: 'user'
+                            }
+                        },
+                        {
+                            $unwind: { path: '$user' }
+                        },
+                        {
+                            $match: {
+                                $and: query
+                            }
+                        },
+                        {
+                            $group: {
+                                _id: '$location',
+                                avg: {
+                                    $avg: '$mark'
+                                }
+                            }
+                        }
+                    ],
+                    function (err, results) {
+                        let avg = results.length
+                            ? util.round(results[0].avg)
+                            : 0
+
+                        util.send(res, '{"avg":' + avg + '}');
+                    });
+            });
+    });
 };

@@ -6,12 +6,13 @@ services:
     ports:
       - "3000:80"
     volumes:
-      - ./data/full:/tmp/data
+      - ./data/train:/tmp/data
   dev:
     build: .
     image: maximzasorin/highloadcup-1
     ports:
       - "3000:80"
+      - "56745:56745"
     volumes:
      - .:/usr/app
      - ./data/train:/tmp/data

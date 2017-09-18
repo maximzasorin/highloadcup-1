@@ -4,19 +4,16 @@
   "author": "Maxim Zasorin <maximzasorin@gmail.com>",
   "private": true,
   "scripts": {
-    "prod": "NODE_ENV=production node server.js",
-    "dev": "nodemon server.js",
+    "prod": "NODE_ENV=production node app/server.js",
+    "dev": "NODE_ENV=production node --inspect=56745 --prof --log-timer-events app/server.js",
     "docker-test": "npm run test",
     "test": "mocha --timeout 10000 tests"
   },
   "dependencies": {
-    "apicache": "^0.9.0",
     "body-parser": "^1.17.2",
     "cluster": "^0.7.7",
     "express": "^4.13.3",
-    "express-mung": "^0.4.6",
-    "memory-cache": "^0.2.0",
-    "mongoose": "^4.11.6"
+    "mongodb": "^2.2.31"
   },
   "devDependencies": {
     "nodemon": "^1.11.0",

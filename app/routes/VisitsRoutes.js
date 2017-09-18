@@ -1,17 +1,12 @@
 module.exports = function(app) {
-  	var VisitsController = require('../controllers/VisitsController');
+    var VisitsController = require('../controllers/VisitsController');
 
-  	// VisitsController Routes
+    app.route('/visits/new').post(VisitsController.store);
 
-  	// // TODO: remove for prod
-  	// app.route('/visits').get(VisitsController.index);
+    app.route('/visits/:id')
+        .get(VisitsController.show)
+        .post(VisitsController.update);
 
-  	app.route('/visits/new').post(VisitsController.store);
-
-  	app.route('/visits/:visitId')
-  		.get(VisitsController.show)
-  		.post(VisitsController.update);
-
-  	app.route('/users/:userId/visits')
-  		.get(VisitsController.indexByUser)
+    app.route('/users/:id/visits')
+        .get(VisitsController.indexByUser)
 };
